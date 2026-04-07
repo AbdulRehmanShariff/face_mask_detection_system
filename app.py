@@ -12,7 +12,9 @@ import numpy as np
 import base64
 import time
 from flask import Flask, render_template, request, jsonify, Response
-from tensorflow.keras.models import load_model
+# from tensorflow.keras.models import load_model
+import tf_keras as keras_compat
+from tf_keras.models import load_model
 from werkzeug.utils import secure_filename
 
 IMG_SIZE = 224
