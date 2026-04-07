@@ -1,0 +1,1785 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>MaskGuard AI Real-time Mask Detection</title>
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&f[]=clash-display@400,500,600,700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #07090f;
+        --s1: #0c0f1a;
+        --s2: #101420;
+        --s3: #161b2e;
+        --bd: #1c2438;
+        --bd2: #232d45;
+        --tx: #dde3f0;
+        --mt: #5e6e90;
+        --ft: #2d3a52;
+        --blue: #4f8ef7;
+        --blue-dim: rgba(79, 142, 247, 0.1);
+        --blue-bd: rgba(79, 142, 247, 0.22);
+        --green: #34d399;
+        --green-dim: rgba(52, 211, 153, 0.09);
+        --green-bd: rgba(52, 211, 153, 0.22);
+        --red: #f87171;
+        --red-dim: rgba(248, 113, 113, 0.09);
+        --red-bd: rgba(248, 113, 113, 0.22);
+        --amber: #fbbf24;
+        --violet: #a78bfa;
+        --r: 10px;
+        --rl: 14px;
+        --font: "General Sans", system-ui, sans-serif;
+        --font-d: "Clash Display", "General Sans", sans-serif;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        -webkit-font-smoothing: antialiased;
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--tx);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      img {
+        display: block;
+        max-width: 100%;
+      }
+      button {
+        cursor: pointer;
+        border: none;
+        background: none;
+        font: inherit;
+        color: inherit;
+      }
+      ::-webkit-scrollbar {
+        width: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--bg);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--bd2);
+        border-radius: 2px;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(79, 142, 247, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(79, 142, 247, 0.025) 1px, transparent 1px);
+        background-size: 48px 48px;
+      }
+      .wrap {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* NAV */
+      nav {
+        height: 60px;
+        padding: 0 36px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(7, 9, 15, 0.9);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--bd);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .nav-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .nav-logo {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        font-size: 16px;
+        background: linear-gradient(135deg, #4f8ef7, #a78bfa);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .nav-name {
+        font-family: var(--font-d);
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--tx);
+      }
+      .nav-tag {
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        color: var(--blue);
+        background: var(--blue-dim);
+        border: 1px solid var(--blue-bd);
+        padding: 2px 9px;
+        border-radius: 20px;
+      }
+      .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .nav-count {
+        text-align: center;
+      }
+      .nav-count-n {
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+      .nav-count-l {
+        font-size: 0.58rem;
+        color: var(--mt);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+      }
+      .sep {
+        width: 1px;
+        height: 24px;
+        background: var(--bd);
+      }
+      .live-tag {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--green-dim);
+        border: 1px solid var(--green-bd);
+        padding: 4px 11px;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--green);
+      }
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        animation: blink 1.6s infinite;
+      }
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      main {
+        padding: 24px 36px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      /* KPI */
+      .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+      }
+      .kpi {
+        background: var(--s1);
+        border: 1px solid var(--bd);
+        border-radius: var(--r);
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        transition:
+          border-color 0.2s,
+          transform 0.2s;
+      }
+      .kpi:hover {
+        border-color: var(--bd2);
+        transform: translateY(-2px);
+      }
+      .kpi-ic {
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        flex-shrink: 0;
+      }
+      .ic-b {
+        background: var(--blue-dim);
+      }
+      .ic-g {
+        background: var(--green-dim);
+      }
+      .ic-r {
+        background: var(--red-dim);
+      }
+      .ic-a {
+        background: rgba(251, 191, 36, 0.08);
+      }
+      .ic-v {
+        background: rgba(167, 139, 250, 0.08);
+      }
+      .kpi-n {
+        font-family: var(--font-d);
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .kpi-l {
+        font-size: 0.63rem;
+        color: var(--mt);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 2px;
+      }
+      .c-b {
+        color: var(--blue);
+      }
+      .c-g {
+        color: var(--green);
+      }
+      .c-r {
+        color: var(--red);
+      }
+      .c-a {
+        color: var(--amber);
+      }
+      .c-v {
+        color: var(--violet);
+      }
+
+      /* TABS */
+      .tabs {
+        display: flex;
+        gap: 2px;
+        background: var(--s1);
+        border: 1px solid var(--bd);
+        border-radius: var(--r);
+        padding: 4px;
+        width: fit-content;
+      }
+      .tab {
+        padding: 8px 18px;
+        border-radius: 7px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        color: var(--mt);
+        transition: all 0.18s;
+      }
+      .tab:hover {
+        color: var(--tx);
+      }
+      .tab.on {
+        background: var(--s3);
+        color: var(--tx);
+        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+      }
+      .pane {
+        display: none;
+      }
+      .pane.on {
+        display: block;
+      }
+
+      /* CARD */
+      .card {
+        background: var(--s1);
+        border: 1px solid var(--bd);
+        border-radius: var(--rl);
+        overflow: hidden;
+      }
+      .card-head {
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--bd);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .card-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--mt);
+      }
+      .card-title span {
+        color: var(--tx);
+      }
+      .card-body {
+        padding: 18px;
+      }
+
+      /* UPLOAD */
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 16px;
+      }
+      .drop {
+        border: 2px dashed var(--bd2);
+        border-radius: var(--r);
+        padding: 34px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.22s;
+        position: relative;
+        background: var(--s2);
+      }
+      .drop:hover,
+      .drop.hover {
+        border-color: var(--blue);
+        background: rgba(79, 142, 247, 0.04);
+      }
+      .drop input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+        height: 100%;
+      }
+      .drop-ic {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        background: var(--blue-dim);
+        border: 1px solid var(--blue-bd);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        margin: 0 auto 12px;
+      }
+      .drop h3 {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .drop p {
+        color: var(--mt);
+        font-size: 0.78rem;
+        margin-bottom: 3px;
+      }
+      .drop small {
+        color: var(--ft);
+        font-size: 0.68rem;
+      }
+      #pv-wrap {
+        display: none;
+        margin-top: 12px;
+        position: relative;
+      }
+      #pv-img {
+        width: 100%;
+        border-radius: var(--r);
+        border: 1px solid var(--bd);
+        max-height: 260px;
+        object-fit: cover;
+      }
+      .pv-label {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(7, 9, 15, 0.85);
+        border: 1px solid var(--bd);
+        border-radius: 6px;
+        padding: 2px 8px;
+        font-size: 0.67rem;
+        color: var(--mt);
+      }
+      #run-btn {
+        display: none;
+        width: 100%;
+        margin-top: 11px;
+        padding: 12px;
+        background: var(--blue);
+        border-radius: var(--r);
+        font-size: 0.87rem;
+        font-weight: 600;
+        color: #fff;
+        transition: all 0.18s;
+        box-shadow: 0 3px 16px rgba(79, 142, 247, 0.2);
+      }
+      #run-btn:hover {
+        background: #3a7de6;
+        transform: translateY(-1px);
+        box-shadow: 0 5px 20px rgba(79, 142, 247, 0.3);
+      }
+      #run-btn:disabled {
+        opacity: 0.55;
+        transform: none;
+        cursor: not-allowed;
+      }
+      .err-msg {
+        display: none;
+        margin-top: 9px;
+        background: var(--red-dim);
+        border: 1px solid var(--red-bd);
+        border-radius: var(--r);
+        padding: 10px 14px;
+        font-size: 0.8rem;
+        color: #fca5a5;
+      }
+
+      /* RESULT */
+      #result {
+        display: none;
+      }
+      #out-img {
+        width: 100%;
+        border-radius: var(--r);
+        border: 1px solid var(--bd);
+      }
+      .r3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin: 12px 0;
+      }
+      .r3-box {
+        background: var(--s2);
+        border: 1px solid var(--bd);
+        border-radius: var(--r);
+        padding: 12px;
+        text-align: center;
+      }
+      .r3-n {
+        font-family: var(--font-d);
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+      .r3-l {
+        font-size: 0.62rem;
+        color: var(--mt);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-top: 2px;
+      }
+      .face-row {
+        background: var(--s2);
+        border: 1px solid var(--bd);
+        border-left: 3px solid;
+        border-radius: 8px;
+        padding: 11px 13px;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: transform 0.12s;
+      }
+      .face-row:hover {
+        transform: translateX(3px);
+      }
+      .fr-name {
+        font-weight: 600;
+        font-size: 0.83rem;
+        margin-bottom: 5px;
+      }
+      .bar-bg {
+        width: 140px;
+        height: 4px;
+        background: var(--ft);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .bar-fill {
+        height: 100%;
+        border-radius: 2px;
+        transition: width 0.9s ease;
+      }
+      .fr-pct {
+        font-weight: 700;
+        font-size: 0.9rem;
+      }
+
+      /* LOADER */
+      #loader {
+        display: none;
+        padding: 40px;
+        text-align: center;
+      }
+      .ring {
+        width: 44px;
+        height: 44px;
+        border: 3px solid var(--bd2);
+        border-top-color: var(--blue);
+        border-radius: 50%;
+        animation: spin 0.65s linear infinite;
+        margin: 0 auto 12px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .ring-txt {
+        color: var(--mt);
+        font-size: 0.83rem;
+      }
+      .ring-sub {
+        color: var(--ft);
+        font-size: 0.72rem;
+        margin-top: 3px;
+      }
+      #empty-state {
+        padding: 42px 20px;
+        text-align: center;
+        color: var(--ft);
+      }
+      .es-icon {
+        font-size: 2.4rem;
+        opacity: 0.18;
+        margin-bottom: 8px;
+      }
+
+      /* WEBCAM */
+      .webcam-grid {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 16px;
+      }
+      .cam-card {
+        background: var(--s1);
+        border: 1px solid var(--bd);
+        border-radius: var(--rl);
+        overflow: hidden;
+      }
+      .cam-head {
+        padding: 12px 17px;
+        border-bottom: 1px solid var(--bd);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .cam-body {
+        position: relative;
+        background: #000;
+        aspect-ratio: 16/9;
+      }
+      .cam-ph {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: var(--ft);
+      }
+      .cam-ph-ic {
+        font-size: 2.6rem;
+        opacity: 0.18;
+      }
+      #cam-feed {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: none;
+      }
+      .cam-bar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 12px 16px;
+        display: none;
+        background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.72rem;
+        color: rgba(255, 255, 255, 0.55);
+      }
+      .ctrl-col {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .mini-card {
+        background: var(--s1);
+        border: 1px solid var(--bd);
+        border-radius: var(--rl);
+        padding: 16px;
+      }
+      .mini-card h4 {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--mt);
+        margin-bottom: 12px;
+      }
+      .cam-btn {
+        width: 100%;
+        padding: 11px;
+        border-radius: var(--r);
+        font-size: 0.84rem;
+        font-weight: 600;
+        transition: all 0.18s;
+        margin-bottom: 6px;
+      }
+      #btn-start {
+        background: var(--green);
+        color: #022c22;
+      }
+      #btn-start:hover {
+        filter: brightness(1.1);
+        transform: translateY(-1px);
+      }
+      #btn-stop {
+        display: none;
+        background: var(--red-dim);
+        color: var(--red);
+        border: 1px solid var(--red-bd);
+      }
+      #btn-stop:hover {
+        background: rgba(248, 113, 113, 0.14);
+      }
+      .info-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 7px 10px;
+        background: var(--s2);
+        border-radius: 7px;
+        border: 1px solid var(--bd);
+        margin-bottom: 5px;
+      }
+      .info-row-l {
+        font-size: 0.74rem;
+        color: var(--mt);
+      }
+      .pill {
+        font-size: 0.67rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 20px;
+      }
+      .pill-off {
+        background: var(--ft);
+        color: var(--mt);
+      }
+      .pill-on {
+        background: var(--green-dim);
+        color: var(--green);
+        border: 1px solid var(--green-bd);
+      }
+      .pill-b {
+        background: var(--blue-dim);
+        color: var(--blue);
+      }
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--bd);
+        font-size: 0.78rem;
+      }
+      .detail-row:last-child {
+        border-bottom: none;
+      }
+      .detail-row span:first-child {
+        color: var(--mt);
+      }
+      .detail-row span:last-child {
+        font-weight: 600;
+      }
+      .model-2x2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      .model-box {
+        background: var(--s2);
+        border: 1px solid var(--bd);
+        border-radius: 7px;
+        padding: 9px;
+      }
+      .model-box-l {
+        font-size: 0.6rem;
+        color: var(--mt);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 3px;
+      }
+      .model-box-v {
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+
+      /* HISTORY */
+      .history-grid {
+        display: grid;
+        grid-template-columns: 1fr 295px;
+        gap: 16px;
+      }
+      .table-wrap {
+        overflow: hidden;
+        border-radius: var(--rl);
+        border: 1px solid var(--bd);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--s1);
+      }
+      thead {
+        background: var(--s3);
+      }
+      th {
+        padding: 10px 14px;
+        text-align: left;
+        font-size: 0.63rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--mt);
+        border-bottom: 1px solid var(--bd);
+      }
+      td {
+        padding: 10px 14px;
+        font-size: 0.79rem;
+        border-bottom: 1px solid var(--bd);
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:hover td {
+        background: var(--s2);
+      }
+      .tag-safe {
+        background: var(--green-dim);
+        color: var(--green);
+        border: 1px solid var(--green-bd);
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 0.65rem;
+        font-weight: 600;
+      }
+      .tag-warn {
+        background: var(--red-dim);
+        color: var(--red);
+        border: 1px solid var(--red-bd);
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 0.65rem;
+        font-weight: 600;
+      }
+      .empty-row {
+        padding: 50px;
+        text-align: center;
+        color: var(--ft);
+        font-size: 0.82rem;
+      }
+
+      /* DONUT */
+      .sum-card {
+        background: var(--s1);
+        border: 1px solid var(--bd);
+        border-radius: var(--rl);
+        padding: 16px;
+      }
+      .sum-card h4 {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--mt);
+        margin-bottom: 14px;
+      }
+      .donut-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 13px;
+      }
+      .donut-ring {
+        position: relative;
+        width: 136px;
+        height: 136px;
+      }
+      .d-svg {
+        transform: rotate(-90deg);
+      }
+      .d-ctr {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+      }
+      .d-pct {
+        font-family: var(--font-d);
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--green);
+      }
+      .d-sub {
+        font-size: 0.58rem;
+        color: var(--mt);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .legend {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 100%;
+      }
+      .leg-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .leg-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .leg-label {
+        font-size: 0.75rem;
+        color: var(--mt);
+        margin-left: 6px;
+        flex: 1;
+      }
+      .leg-val {
+        font-weight: 700;
+        font-size: 0.78rem;
+      }
+      .sess-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--bd);
+        font-size: 0.76rem;
+      }
+      .sess-row:last-child {
+        border-bottom: none;
+      }
+      .sess-row span:first-child {
+        color: var(--mt);
+      }
+      .sess-row span:last-child {
+        font-weight: 700;
+      }
+
+      /* ABOUT */
+      .about-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .about-box {
+        background: var(--s1);
+        border: 1px solid var(--bd);
+        border-radius: var(--rl);
+        padding: 18px;
+      }
+      .about-box h3 {
+        font-size: 0.88rem;
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+      .about-box p {
+        font-size: 0.77rem;
+        color: var(--mt);
+        line-height: 1.65;
+      }
+      .about-ico {
+        font-size: 1.5rem;
+        margin-bottom: 9px;
+        opacity: 0.7;
+      }
+      .pipeline-card {
+        background: var(--s1);
+        border: 1px solid var(--bd);
+        border-radius: var(--rl);
+        padding: 18px;
+        margin-bottom: 13px;
+      }
+      .pipeline-card h4 {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--mt);
+        margin-bottom: 15px;
+      }
+      .pipe-steps {
+        display: flex;
+        align-items: center;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+      .pipe-step {
+        flex-shrink: 0;
+        background: var(--s2);
+        border: 1px solid var(--bd);
+        border-radius: var(--r);
+        padding: 10px 14px;
+        text-align: center;
+        min-width: 108px;
+      }
+      .pipe-step-i {
+        font-size: 1.1rem;
+        margin-bottom: 4px;
+        opacity: 0.65;
+      }
+      .pipe-step-t {
+        font-size: 0.7rem;
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+      .pipe-step-s {
+        font-size: 0.6rem;
+        color: var(--mt);
+      }
+      .pipe-arr {
+        color: var(--ft);
+        font-size: 0.9rem;
+        padding: 0 3px;
+        flex-shrink: 0;
+      }
+      .about-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .stack-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        margin-top: 12px;
+      }
+      .stack-item {
+        background: var(--s2);
+        border: 1px solid var(--bd);
+        border-radius: var(--r);
+        padding: 10px;
+        text-align: center;
+      }
+      .stack-ic {
+        font-size: 1.3rem;
+        margin-bottom: 4px;
+        opacity: 0.6;
+      }
+      .stack-n {
+        font-size: 0.7rem;
+        font-weight: 600;
+      }
+      .stack-t {
+        font-size: 0.58rem;
+        color: var(--mt);
+      }
+      .acc-row {
+        margin-bottom: 8px;
+      }
+      .acc-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        margin-bottom: 3px;
+      }
+      .acc-bg {
+        height: 5px;
+        background: var(--ft);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .acc-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 1.4s ease;
+      }
+
+      footer {
+        text-align: center;
+        padding: 18px 36px;
+        border-top: 1px solid var(--bd);
+        font-size: 0.7rem;
+        color: var(--ft);
+      }
+
+      @media (max-width: 1080px) {
+        .kpi-row {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        .grid-2,
+        .webcam-grid,
+        .history-grid {
+          grid-template-columns: 1fr;
+        }
+        nav,
+        main {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+      }
+      @media (max-width: 640px) {
+        .kpi-row {
+          grid-template-columns: 1fr 1fr;
+        }
+        .about-3 {
+          grid-template-columns: 1fr 1fr;
+        }
+        .about-2,
+        .stack-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <nav>
+        <div class="nav-left">
+          <div class="nav-logo">&#128247;</div>
+          <span class="nav-name">MaskGuard AI</span>
+          <span class="nav-tag">v1.0</span>
+        </div>
+        <div class="nav-right">
+          <div class="nav-count">
+            <div class="nav-count-n" id="nv-t">0</div>
+            <div class="nav-count-l">Scanned</div>
+          </div>
+          <div class="sep"></div>
+          <div class="nav-count">
+            <div class="nav-count-n c-g" id="nv-s">0</div>
+            <div class="nav-count-l">Safe</div>
+          </div>
+          <div class="sep"></div>
+          <div class="nav-count">
+            <div class="nav-count-n c-r" id="nv-a">0</div>
+            <div class="nav-count-l">Alerts</div>
+          </div>
+          <div class="sep"></div>
+          <div class="live-tag">
+            <div class="dot"></div>
+            Online
+          </div>
+        </div>
+      </nav>
+
+      <main>
+        <div class="kpi-row">
+          <div class="kpi">
+            <div class="kpi-ic ic-b">&#127919;</div>
+            <div>
+              <div class="kpi-n c-b">98.87%</div>
+              <div class="kpi-l">Model Accuracy</div>
+            </div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-ic ic-g">&#128084;</div>
+            <div>
+              <div class="kpi-n c-g" id="k-mask">0</div>
+              <div class="kpi-l">With Mask</div>
+            </div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-ic ic-r">&#10060;</div>
+            <div>
+              <div class="kpi-n c-r" id="k-nomask">0</div>
+              <div class="kpi-l">No Mask</div>
+            </div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-ic ic-a">&#128247;</div>
+            <div>
+              <div class="kpi-n c-a" id="k-imgs">0</div>
+              <div class="kpi-l">Images Scanned</div>
+            </div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-ic ic-v">&#9889;</div>
+            <div>
+              <div class="kpi-n c-v">MobileNetV2</div>
+              <div class="kpi-l">Architecture</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab on" onclick="sw('upload', this)">
+            Upload &amp; Detect
+          </button>
+          <button class="tab" onclick="sw('webcam', this)">Live Webcam</button>
+          <button class="tab" onclick="sw('history', this)">
+            Detection History
+          </button>
+          <button class="tab" onclick="sw('about', this)">Model Info</button>
+        </div>
+
+        <!-- UPLOAD -->
+        <div class="pane on" id="p-upload">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-head">
+                <div class="card-title"><span>Upload Image</span></div>
+                <span style="font-size: 0.68rem; color: var(--mt)"
+                  >JPG, PNG</span
+                >
+              </div>
+              <div class="card-body">
+                <div class="drop" id="drop-zone">
+                  <input type="file" id="file-in" accept=".jpg,.jpeg,.png" />
+                  <div class="drop-ic">&#128193;</div>
+                  <h3>Drag and drop or click to browse</h3>
+                  <p>Upload a face image to check mask compliance</p>
+                  <small>Supports JPG, JPEG, PNG</small>
+                </div>
+                <div id="pv-wrap">
+                  <img id="pv-img" src="" alt="preview" />
+                  <div class="pv-label" id="pv-name">image.jpg</div>
+                </div>
+                <button id="run-btn" onclick="runDetect()">Detect Mask</button>
+                <div class="err-msg" id="err-msg"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <div class="card-title"><span>Results</span></div>
+                <div id="res-badge"></div>
+              </div>
+              <div class="card-body">
+                <div id="empty-state">
+                  <div class="es-icon">&#128202;</div>
+                  <div style="font-size: 0.84rem">
+                    Upload an image to see detection results
+                  </div>
+                </div>
+                <div id="loader">
+                  <div class="ring"></div>
+                  <div class="ring-txt">Analyzing...</div>
+                  <div class="ring-sub">
+                    Running inference on detected faces
+                  </div>
+                </div>
+                <div id="result">
+                  <img id="out-img" src="" alt="result" />
+                  <div class="r3">
+                    <div class="r3-box">
+                      <div class="r3-n c-b" id="r-tot">0</div>
+                      <div class="r3-l">Faces</div>
+                    </div>
+                    <div class="r3-box">
+                      <div class="r3-n c-g" id="r-mask">0</div>
+                      <div class="r3-l">Masked</div>
+                    </div>
+                    <div class="r3-box">
+                      <div class="r3-n c-r" id="r-nomask">0</div>
+                      <div class="r3-l">Unmasked</div>
+                    </div>
+                  </div>
+                  <div id="face-list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- WEBCAM -->
+        <div class="pane" id="p-webcam">
+          <div class="webcam-grid">
+            <div class="cam-card">
+              <div class="cam-head">
+                <div class="card-title"><span>Live Camera</span></div>
+                <span
+                  id="cam-status-txt"
+                  style="font-size: 0.72rem; color: var(--mt)"
+                  >Offline</span
+                >
+              </div>
+              <div class="cam-body">
+                <div class="cam-ph" id="cam-ph">
+                  <div class="cam-ph-ic">&#128247;</div>
+                  <div
+                    style="
+                      font-size: 0.82rem;
+                      text-align: center;
+                      line-height: 1.5;
+                    "
+                  >
+                    Click <strong style="color: var(--tx)">Start Camera</strong
+                    ><br />to begin detection
+                  </div>
+                </div>
+                <img id="cam-feed" src="" alt="webcam" />
+                <div class="cam-bar" id="cam-bar">
+                  <span>Live &mdash; MobileNetV2 + DNN SSD</span>
+                  <span>Click Stop to end session</span>
+                </div>
+              </div>
+            </div>
+            <div class="ctrl-col">
+              <div class="mini-card">
+                <h4>Camera Controls</h4>
+                <button class="cam-btn" id="btn-start" onclick="startCam()">
+                  Start Camera
+                </button>
+                <button class="cam-btn" id="btn-stop" onclick="stopCam()">
+                  Stop Camera
+                </button>
+                <div class="info-row">
+                  <span class="info-row-l">Status</span
+                  ><span class="pill pill-off" id="cam-pill">Offline</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-row-l">Face Detector</span
+                  ><span class="pill pill-b">DNN SSD</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-row-l">Resolution</span
+                  ><span class="pill pill-b">1280x720</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-row-l">Multi-face</span
+                  ><span class="pill pill-b">Supported</span>
+                </div>
+              </div>
+              <div class="mini-card">
+                <h4>Detection Info</h4>
+                <div class="detail-row">
+                  <span>Mask detected</span><span class="c-g">Green box</span>
+                </div>
+                <div class="detail-row">
+                  <span>No mask</span><span class="c-r">Red box</span>
+                </div>
+                <div class="detail-row">
+                  <span>Confidence</span><span class="c-b">Shown live</span>
+                </div>
+                <div class="detail-row">
+                  <span>Distance range</span
+                  ><span class="c-a">Near &amp; far</span>
+                </div>
+                <div class="detail-row">
+                  <span>Processing</span><span class="c-v">Real-time</span>
+                </div>
+              </div>
+              <div class="mini-card">
+                <h4>Model Details</h4>
+                <div class="model-2x2">
+                  <div class="model-box">
+                    <div class="model-box-l">Model</div>
+                    <div class="model-box-v c-b">MobileNetV2</div>
+                  </div>
+                  <div class="model-box">
+                    <div class="model-box-l">Accuracy</div>
+                    <div class="model-box-v c-g">98.87%</div>
+                  </div>
+                  <div class="model-box">
+                    <div class="model-box-l">Dataset</div>
+                    <div class="model-box-v c-a">7,553 imgs</div>
+                  </div>
+                  <div class="model-box">
+                    <div class="model-box-l">Input size</div>
+                    <div class="model-box-v c-v">224x224</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HISTORY -->
+        <div class="pane" id="p-history">
+          <div class="history-grid">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Preview</th>
+                    <th>Faces</th>
+                    <th>Masked</th>
+                    <th>Unmasked</th>
+                    <th>Status</th>
+                    <th>Confidence</th>
+                    <th>Time</th>
+                  </tr>
+                </thead>
+                <tbody id="hist-body">
+                  <tr>
+                    <td colspan="8" class="empty-row">
+                      No detections yet. Upload an image to get started.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px">
+              <div class="sum-card">
+                <h4>Summary</h4>
+                <div class="donut-wrap">
+                  <div class="donut-ring">
+                    <svg
+                      class="d-svg"
+                      width="136"
+                      height="136"
+                      viewBox="0 0 136 136"
+                    >
+                      <circle
+                        cx="68"
+                        cy="68"
+                        r="50"
+                        fill="none"
+                        stroke="var(--ft)"
+                        stroke-width="12"
+                      />
+                      <circle
+                        id="d-green"
+                        cx="68"
+                        cy="68"
+                        r="50"
+                        fill="none"
+                        stroke="var(--green)"
+                        stroke-width="12"
+                        stroke-dasharray="0 314"
+                        stroke-linecap="round"
+                        style="transition: stroke-dasharray 0.9s ease"
+                      />
+                      <circle
+                        id="d-red"
+                        cx="68"
+                        cy="68"
+                        r="50"
+                        fill="none"
+                        stroke="var(--red)"
+                        stroke-width="12"
+                        stroke-dasharray="0 314"
+                        stroke-linecap="round"
+                        stroke-dashoffset="0"
+                        style="transition: all 0.9s ease"
+                      />
+                    </svg>
+                    <div class="d-ctr">
+                      <div class="d-pct" id="d-pct">--</div>
+                      <div class="d-sub">Safe rate</div>
+                    </div>
+                  </div>
+                  <div class="legend" style="max-width: 170px">
+                    <div class="leg-row">
+                      <div style="display: flex; align-items: center">
+                        <div
+                          class="leg-dot"
+                          style="background: var(--green)"
+                        ></div>
+                        <span class="leg-label">With mask</span>
+                      </div>
+                      <span class="leg-val c-g" id="lg-m">0</span>
+                    </div>
+                    <div class="leg-row">
+                      <div style="display: flex; align-items: center">
+                        <div
+                          class="leg-dot"
+                          style="background: var(--red)"
+                        ></div>
+                        <span class="leg-label">No mask</span>
+                      </div>
+                      <span class="leg-val c-r" id="lg-n">0</span>
+                    </div>
+                    <div class="leg-row">
+                      <div style="display: flex; align-items: center">
+                        <div
+                          class="leg-dot"
+                          style="background: var(--blue)"
+                        ></div>
+                        <span class="leg-label">Total</span>
+                      </div>
+                      <span class="leg-val c-b" id="lg-t">0</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="sum-card">
+                <h4>Session Stats</h4>
+                <div class="sess-row">
+                  <span>Images uploaded</span><span id="ss-i">0</span>
+                </div>
+                <div class="sess-row">
+                  <span>Total faces</span><span id="ss-f">0</span>
+                </div>
+                <div class="sess-row">
+                  <span>Compliance rate</span
+                  ><span class="c-g" id="ss-c">0%</span>
+                </div>
+                <div class="sess-row">
+                  <span>Violation rate</span
+                  ><span class="c-r" id="ss-v">0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ABOUT -->
+        <div class="pane" id="p-about">
+          <div class="about-3">
+            <div class="about-box">
+              <div class="about-ico">&#129504;</div>
+              <h3>Transfer Learning</h3>
+              <p>
+                MobileNetV2 pre-trained on ImageNet (1.2M images) fine-tuned on
+                a custom 7,553-image face mask dataset. Base layers frozen,
+                custom dense head added for binary classification.
+              </p>
+            </div>
+            <div class="about-box">
+              <div class="about-ico">&#128065;</div>
+              <h3>DNN Face Detection</h3>
+              <p>
+                Uses OpenCV's deep neural network face detector (SSD +
+                ResNet-10) instead of Haarcascade — significantly better at
+                varying angles, distances, and lighting conditions.
+              </p>
+            </div>
+            <div class="about-box">
+              <div class="about-ico">&#9889;</div>
+              <h3>Real-time Processing</h3>
+              <p>
+                Every webcam frame passes through face detection, cropping,
+                224x224 normalization, and MobileNetV2 inference in real-time
+                with multi-face support.
+              </p>
+            </div>
+          </div>
+          <div class="pipeline-card">
+            <h4>Detection Pipeline</h4>
+            <div class="pipe-steps">
+              <div class="pipe-step">
+                <div class="pipe-step-i">&#128247;</div>
+                <div class="pipe-step-t">Input</div>
+                <div class="pipe-step-s">Image / Webcam</div>
+              </div>
+              <div class="pipe-arr">&#8594;</div>
+              <div class="pipe-step">
+                <div class="pipe-step-i">&#128065;</div>
+                <div class="pipe-step-t">Face Detection</div>
+                <div class="pipe-step-s">DNN SSD</div>
+              </div>
+              <div class="pipe-arr">&#8594;</div>
+              <div class="pipe-step">
+                <div class="pipe-step-i">&#9986;</div>
+                <div class="pipe-step-t">Face Crop</div>
+                <div class="pipe-step-s">Extract ROI</div>
+              </div>
+              <div class="pipe-arr">&#8594;</div>
+              <div class="pipe-step">
+                <div class="pipe-step-i">&#128295;</div>
+                <div class="pipe-step-t">Preprocess</div>
+                <div class="pipe-step-s">224x224</div>
+              </div>
+              <div class="pipe-arr">&#8594;</div>
+              <div class="pipe-step">
+                <div class="pipe-step-i">&#129504;</div>
+                <div class="pipe-step-t">MobileNetV2</div>
+                <div class="pipe-step-s">Inference</div>
+              </div>
+              <div class="pipe-arr">&#8594;</div>
+              <div class="pipe-step">
+                <div class="pipe-step-i">&#128202;</div>
+                <div class="pipe-step-t">Output</div>
+                <div class="pipe-step-s">Mask / No mask</div>
+              </div>
+            </div>
+          </div>
+          <div class="about-2">
+            <div class="about-box">
+              <h3>Tech Stack</h3>
+              <div class="stack-grid">
+                <div class="stack-item">
+                  <div class="stack-ic">&#128013;</div>
+                  <div class="stack-n">Python</div>
+                  <div class="stack-t">Language</div>
+                </div>
+                <div class="stack-item">
+                  <div class="stack-ic">&#129514;</div>
+                  <div class="stack-n">TensorFlow</div>
+                  <div class="stack-t">Deep Learning</div>
+                </div>
+                <div class="stack-item">
+                  <div class="stack-ic">&#128064;</div>
+                  <div class="stack-n">OpenCV</div>
+                  <div class="stack-t">Computer Vision</div>
+                </div>
+                <div class="stack-item">
+                  <div class="stack-ic">&#127760;</div>
+                  <div class="stack-n">Flask</div>
+                  <div class="stack-t">Web Backend</div>
+                </div>
+              </div>
+            </div>
+            <div class="about-box">
+              <h3>Model Performance</h3>
+              <div style="margin-top: 12px">
+                <div class="acc-row">
+                  <div class="acc-header">
+                    <span>Validation Accuracy</span
+                    ><span class="c-g">98.87%</span>
+                  </div>
+                  <div class="acc-bg">
+                    <div
+                      class="acc-fill"
+                      style="width: 98.87%; background: var(--green)"
+                    ></div>
+                  </div>
+                </div>
+                <div class="acc-row">
+                  <div class="acc-header">
+                    <span>With Mask Precision</span
+                    ><span class="c-b">99.2%</span>
+                  </div>
+                  <div class="acc-bg">
+                    <div
+                      class="acc-fill"
+                      style="width: 99.2%; background: var(--blue)"
+                    ></div>
+                  </div>
+                </div>
+                <div class="acc-row">
+                  <div class="acc-header">
+                    <span>No Mask Precision</span><span class="c-a">98.5%</span>
+                  </div>
+                  <div class="acc-bg">
+                    <div
+                      class="acc-fill"
+                      style="width: 98.5%; background: var(--amber)"
+                    ></div>
+                  </div>
+                </div>
+                <div class="acc-row">
+                  <div class="acc-header">
+                    <span>Training Images</span><span class="c-v">7,553</span>
+                  </div>
+                  <div class="acc-bg">
+                    <div
+                      class="acc-fill"
+                      style="width: 75%; background: var(--violet)"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer>
+        Face Mask Detection System &mdash; Built by Rehman &mdash; 2026
+      </footer>
+    </div>
+    <script>
+      const G = { mask: 0, nomask: 0, imgs: 0, hist: [] };
+      function sw(name, btn) {
+        document
+          .querySelectorAll(".pane")
+          .forEach((p) => p.classList.remove("on"));
+        document
+          .querySelectorAll(".tab")
+          .forEach((b) => b.classList.remove("on"));
+        document.getElementById("p-" + name).classList.add("on");
+        btn.classList.add("on");
+        if (name !== "webcam") stopCam();
+      }
+      const dropEl = document.getElementById("drop-zone");
+      const fileEl = document.getElementById("file-in");
+      let chosen = null;
+      fileEl.addEventListener("change", function () {
+        if (this.files[0]) pick(this.files[0]);
+      });
+      dropEl.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropEl.classList.add("hover");
+      });
+      dropEl.addEventListener("dragleave", () =>
+        dropEl.classList.remove("hover"),
+      );
+      dropEl.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropEl.classList.remove("hover");
+        if (e.dataTransfer.files[0]) pick(e.dataTransfer.files[0]);
+      });
+      function pick(file) {
+        chosen = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById("pv-img").src = e.target.result;
+          document.getElementById("pv-wrap").style.display = "block";
+          document.getElementById("run-btn").style.display = "block";
+          document.getElementById("pv-name").textContent = file.name;
+          document.getElementById("err-msg").style.display = "none";
+          document.getElementById("result").style.display = "none";
+          document.getElementById("empty-state").style.display = "block";
+        };
+        reader.readAsDataURL(file);
+      }
+      async function runDetect() {
+        if (!chosen) return;
+        const btn = document.getElementById("run-btn");
+        btn.disabled = true;
+        btn.textContent = "Analyzing...";
+        document.getElementById("empty-state").style.display = "none";
+        document.getElementById("loader").style.display = "block";
+        document.getElementById("result").style.display = "none";
+        document.getElementById("err-msg").style.display = "none";
+        const fd = new FormData();
+        fd.append("file", chosen);
+        try {
+          const resp = await fetch("/predict", { method: "POST", body: fd });
+          const data = await resp.json();
+          document.getElementById("loader").style.display = "none";
+          if (data.error && !data.image) {
+            document.getElementById("err-msg").style.display = "block";
+            document.getElementById("err-msg").textContent = data.error;
+            document.getElementById("empty-state").style.display = "block";
+          } else {
+            document.getElementById("out-img").src =
+              "data:image/jpeg;base64," + data.image;
+            document.getElementById("result").style.display = "block";
+            if (data.error) {
+              document.getElementById("err-msg").style.display = "block";
+              document.getElementById("err-msg").textContent = data.error;
+            } else {
+              document.getElementById("r-tot").textContent = data.total_faces;
+              document.getElementById("r-mask").textContent = data.mask_count;
+              document.getElementById("r-nomask").textContent =
+                data.nomask_count;
+              const badge = document.getElementById("res-badge");
+              badge.innerHTML =
+                data.nomask_count > 0
+                  ? `<span class="tag-warn">${data.nomask_count} violation${data.nomask_count > 1 ? "s" : ""}</span>`
+                  : `<span class="tag-safe">All clear</span>`;
+              const fl = document.getElementById("face-list");
+              fl.innerHTML = "";
+              data.results.forEach((r, i) => {
+                fl.innerHTML += `<div class="face-row" style="border-left-color:${r.color}">
+            <div><div class="fr-name" style="color:${r.color}">Face ${i + 1} &mdash; ${r.label}</div>
+            <div class="bar-bg"><div class="bar-fill" style="width:${r.confidence}%;background:${r.color}"></div></div></div>
+            <div class="fr-pct" style="color:${r.color}">${r.confidence}%</div></div>`;
+              });
+              G.mask += data.mask_count;
+              G.nomask += data.nomask_count;
+              G.imgs++;
+              refresh();
+              addHistory(data);
+            }
+          }
+        } catch (e) {
+          document.getElementById("loader").style.display = "none";
+          document.getElementById("err-msg").style.display = "block";
+          document.getElementById("err-msg").textContent =
+            "Could not reach server. Make sure Flask is running.";
+          document.getElementById("empty-state").style.display = "block";
+        }
+        btn.disabled = false;
+        btn.textContent = "Detect Mask";
+      }
+      function refresh() {
+        const tot = G.mask + G.nomask;
+        document.getElementById("k-mask").textContent = G.mask;
+        document.getElementById("k-nomask").textContent = G.nomask;
+        document.getElementById("k-imgs").textContent = G.imgs;
+        document.getElementById("nv-t").textContent = tot;
+        document.getElementById("nv-s").textContent = G.mask;
+        document.getElementById("nv-a").textContent = G.nomask;
+        const circ = 2 * Math.PI * 50;
+        const ga = tot > 0 ? (G.mask / tot) * circ : 0;
+        const ra = tot > 0 ? (G.nomask / tot) * circ : 0;
+        document
+          .getElementById("d-green")
+          .setAttribute("stroke-dasharray", `${ga} ${circ}`);
+        document
+          .getElementById("d-red")
+          .setAttribute("stroke-dasharray", `${ra} ${circ}`);
+        document.getElementById("d-red").setAttribute("stroke-dashoffset", -ga);
+        document.getElementById("d-pct").textContent =
+          tot > 0 ? Math.round((G.mask / tot) * 100) + "%" : "--";
+        document.getElementById("lg-m").textContent = G.mask;
+        document.getElementById("lg-n").textContent = G.nomask;
+        document.getElementById("lg-t").textContent = tot;
+        document.getElementById("ss-i").textContent = G.imgs;
+        document.getElementById("ss-f").textContent = tot;
+        document.getElementById("ss-c").textContent =
+          tot > 0 ? Math.round((G.mask / tot) * 100) + "%" : "0%";
+        document.getElementById("ss-v").textContent =
+          tot > 0 ? Math.round((G.nomask / tot) * 100) + "%" : "0%";
+      }
+      function addHistory(data) {
+        G.hist.unshift({
+          ...data,
+          time: new Date().toLocaleTimeString(),
+          thumb: document.getElementById("pv-img").src,
+        });
+        document.getElementById("hist-body").innerHTML = G.hist
+          .map(
+            (h, i) => `
+    <tr>
+      <td style="color:var(--mt)">#${G.hist.length - i}</td>
+      <td><img src="${h.thumb}" style="width:40px;height:30px;object-fit:cover;border-radius:5px;border:1px solid var(--bd)" alt="thumb"></td>
+      <td><strong>${h.total_faces}</strong></td>
+      <td class="c-g">${h.mask_count}</td>
+      <td class="c-r">${h.nomask_count}</td>
+      <td>${h.nomask_count > 0 ? '<span class="tag-warn">Alert</span>' : '<span class="tag-safe">Clear</span>'}</td>
+      <td style="color:var(--mt)">${h.results.length > 0 ? h.results[0].confidence + "%" : "--"}</td>
+      <td style="color:var(--ft)">${h.time}</td>
+    </tr>`,
+          )
+          .join("");
+      }
+      function startCam() {
+        document.getElementById("cam-feed").src = "/video_feed";
+        document.getElementById("cam-feed").style.display = "block";
+        document.getElementById("cam-ph").style.display = "none";
+        document.getElementById("cam-bar").style.display = "flex";
+        document.getElementById("btn-start").style.display = "none";
+        document.getElementById("btn-stop").style.display = "block";
+        document.getElementById("cam-pill").className = "pill pill-on";
+        document.getElementById("cam-pill").textContent = "Live";
+        document.getElementById("cam-status-txt").style.color = "var(--green)";
+        document.getElementById("cam-status-txt").textContent = "Live";
+      }
+      function stopCam() {
+        document.getElementById("cam-feed").src = "";
+        document.getElementById("cam-feed").style.display = "none";
+        document.getElementById("cam-ph").style.display = "flex";
+        document.getElementById("cam-bar").style.display = "none";
+        document.getElementById("btn-start").style.display = "block";
+        document.getElementById("btn-stop").style.display = "none";
+        document.getElementById("cam-pill").className = "pill pill-off";
+        document.getElementById("cam-pill").textContent = "Offline";
+        document.getElementById("cam-status-txt").style.color = "var(--mt)";
+        document.getElementById("cam-status-txt").textContent = "Offline";
+      }
+    </script>
+  </body>
+</html>
