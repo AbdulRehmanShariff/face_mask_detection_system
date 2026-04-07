@@ -33,7 +33,8 @@ face_net = None
 def load_resources():
     global mask_model, face_net
     try:
-        mask_model = load_model("models/best_model.keras")
+        # mask_model = load_model("models/best_model.keras")
+        mask_model = load_model("models/best_model_v2.keras")
         print("Model loaded successfully")
     except Exception as e:
         print(f"Model load error: {e}")
