@@ -559,6 +559,18 @@
         margin-bottom: 8px;
       }
 
+      /* WAKE NOTICE */
+      #wake-notice {
+        display: none;
+        margin-top: 10px;
+        background: rgba(251, 191, 36, 0.08);
+        border: 1px solid rgba(251, 191, 36, 0.25);
+        border-radius: var(--r);
+        padding: 10px 14px;
+        font-size: 0.8rem;
+        color: var(--amber);
+      }
+
       /* WEBCAM */
       .webcam-grid {
         display: grid;
@@ -1140,7 +1152,7 @@
           <button class="tab" onclick="sw('about', this)">Model Info</button>
         </div>
 
-        <!-- UPLOAD -->
+        <!-- UPLOAD TAB -->
         <div class="pane on" id="p-upload">
           <div class="grid-2">
             <div class="card">
@@ -1162,7 +1174,13 @@
                   <img id="pv-img" src="" alt="preview" />
                   <div class="pv-label" id="pv-name">image.jpg</div>
                 </div>
-                <button id="run-btn" onclick="runDetect()">Detect Mask</button>
+                <button id="run-btn" onclick="runDetect()">
+                  &#128269; Detect Mask
+                </button>
+                <div id="wake-notice">
+                  &#9203; Server is waking up (free tier). Please wait up to 60
+                  seconds&hellip;
+                </div>
                 <div class="err-msg" id="err-msg"></div>
               </div>
             </div>
@@ -1180,8 +1198,8 @@
                 </div>
                 <div id="loader">
                   <div class="ring"></div>
-                  <div class="ring-txt">Analyzing...</div>
-                  <div class="ring-sub">
+                  <div class="ring-txt" id="loader-txt">Analyzing&hellip;</div>
+                  <div class="ring-sub" id="loader-sub">
                     Running inference on detected faces
                   </div>
                 </div>
@@ -1208,7 +1226,7 @@
           </div>
         </div>
 
-        <!-- WEBCAM -->
+        <!-- WEBCAM TAB -->
         <div class="pane" id="p-webcam">
           <div class="webcam-grid">
             <div class="cam-card">
@@ -1251,20 +1269,20 @@
                   Stop Camera
                 </button>
                 <div class="info-row">
-                  <span class="info-row-l">Status</span
-                  ><span class="pill pill-off" id="cam-pill">Offline</span>
+                  <span class="info-row-l">Status</span>
+                  <span class="pill pill-off" id="cam-pill">Offline</span>
                 </div>
                 <div class="info-row">
-                  <span class="info-row-l">Face Detector</span
-                  ><span class="pill pill-b">DNN SSD</span>
+                  <span class="info-row-l">Face Detector</span>
+                  <span class="pill pill-b">DNN SSD</span>
                 </div>
                 <div class="info-row">
-                  <span class="info-row-l">Resolution</span
-                  ><span class="pill pill-b">1280x720</span>
+                  <span class="info-row-l">Resolution</span>
+                  <span class="pill pill-b">1280x720</span>
                 </div>
                 <div class="info-row">
-                  <span class="info-row-l">Multi-face</span
-                  ><span class="pill pill-b">Supported</span>
+                  <span class="info-row-l">Multi-face</span>
+                  <span class="pill pill-b">Supported</span>
                 </div>
               </div>
               <div class="mini-card">
@@ -1311,7 +1329,7 @@
           </div>
         </div>
 
-        <!-- HISTORY -->
+        <!-- HISTORY TAB -->
         <div class="pane" id="p-history">
           <div class="history-grid">
             <div class="table-wrap">
@@ -1442,7 +1460,7 @@
           </div>
         </div>
 
-        <!-- ABOUT -->
+        <!-- ABOUT TAB -->
         <div class="pane" id="p-about">
           <div class="about-3">
             <div class="about-box">
@@ -1459,8 +1477,8 @@
               <h3>DNN Face Detection</h3>
               <p>
                 Uses OpenCV's deep neural network face detector (SSD +
-                ResNet-10) instead of Haarcascade — significantly better at
-                varying angles, distances, and lighting conditions.
+                ResNet-10) instead of Haarcascade &mdash; significantly better
+                at varying angles, distances, and lighting conditions.
               </p>
             </div>
             <div class="about-box">
@@ -1598,8 +1616,10 @@
         Face Mask Detection System &mdash; Built by Rehman &mdash; 2026
       </footer>
     </div>
+
     <script>
       const G = { mask: 0, nomask: 0, imgs: 0, hist: [] };
+
       function sw(name, btn) {
         document
           .querySelectorAll(".pane")
@@ -1611,9 +1631,11 @@
         btn.classList.add("on");
         if (name !== "webcam") stopCam();
       }
+
       const dropEl = document.getElementById("drop-zone");
       const fileEl = document.getElementById("file-in");
       let chosen = null;
+
       fileEl.addEventListener("change", function () {
         if (this.files[0]) pick(this.files[0]);
       });
@@ -1629,6 +1651,7 @@
         dropEl.classList.remove("hover");
         if (e.dataTransfer.files[0]) pick(e.dataTransfer.files[0]);
       });
+
       function pick(file) {
         chosen = file;
         const reader = new FileReader();
@@ -1638,29 +1661,65 @@
           document.getElementById("run-btn").style.display = "block";
           document.getElementById("pv-name").textContent = file.name;
           document.getElementById("err-msg").style.display = "none";
+          document.getElementById("wake-notice").style.display = "none";
           document.getElementById("result").style.display = "none";
           document.getElementById("empty-state").style.display = "block";
         };
         reader.readAsDataURL(file);
       }
+
       async function runDetect() {
         if (!chosen) return;
         const btn = document.getElementById("run-btn");
         btn.disabled = true;
-        btn.textContent = "Analyzing...";
+        btn.textContent = "⏳ Analyzing…";
         document.getElementById("empty-state").style.display = "none";
         document.getElementById("loader").style.display = "block";
         document.getElementById("result").style.display = "none";
         document.getElementById("err-msg").style.display = "none";
+        document.getElementById("wake-notice").style.display = "none";
+        document.getElementById("loader-txt").textContent =
+          "Connecting to server…";
+        document.getElementById("loader-sub").textContent =
+          "This may take ~30s if the server is asleep";
+
+        // Show wake-up notice after 5 seconds if still loading
+        const wakeTimer = setTimeout(() => {
+          document.getElementById("wake-notice").style.display = "block";
+          document.getElementById("loader-txt").textContent =
+            "Server is waking up…";
+          document.getElementById("loader-sub").textContent =
+            "Render free tier sleeps after inactivity. Almost there!";
+        }, 5000);
+
+        const controller = new AbortController();
+        const hardTimeout = setTimeout(() => controller.abort(), 90000); // 90 second max
+
         const fd = new FormData();
         fd.append("file", chosen);
+
         try {
-          const resp = await fetch("/predict", { method: "POST", body: fd });
+          const resp = await fetch("/predict", {
+            method: "POST",
+            body: fd,
+            signal: controller.signal,
+          });
+          clearTimeout(wakeTimer);
+          clearTimeout(hardTimeout);
+          document.getElementById("wake-notice").style.display = "none";
+
+          if (!resp.ok) {
+            throw new Error(
+              "Server returned " + resp.status + " " + resp.statusText,
+            );
+          }
+
           const data = await resp.json();
           document.getElementById("loader").style.display = "none";
+
           if (data.error && !data.image) {
             document.getElementById("err-msg").style.display = "block";
-            document.getElementById("err-msg").textContent = data.error;
+            document.getElementById("err-msg").textContent = "⚠️ " + data.error;
             document.getElementById("empty-state").style.display = "block";
           } else {
             document.getElementById("out-img").src =
@@ -1668,7 +1727,8 @@
             document.getElementById("result").style.display = "block";
             if (data.error) {
               document.getElementById("err-msg").style.display = "block";
-              document.getElementById("err-msg").textContent = data.error;
+              document.getElementById("err-msg").textContent =
+                "⚠️ " + data.error;
             } else {
               document.getElementById("r-tot").textContent = data.total_faces;
               document.getElementById("r-mask").textContent = data.mask_count;
@@ -1683,9 +1743,12 @@
               fl.innerHTML = "";
               data.results.forEach((r, i) => {
                 fl.innerHTML += `<div class="face-row" style="border-left-color:${r.color}">
-            <div><div class="fr-name" style="color:${r.color}">Face ${i + 1} &mdash; ${r.label}</div>
-            <div class="bar-bg"><div class="bar-fill" style="width:${r.confidence}%;background:${r.color}"></div></div></div>
-            <div class="fr-pct" style="color:${r.color}">${r.confidence}%</div></div>`;
+                  <div>
+                    <div class="fr-name" style="color:${r.color}">Face ${i + 1} &mdash; ${r.label}</div>
+                    <div class="bar-bg"><div class="bar-fill" style="width:${r.confidence}%;background:${r.color}"></div></div>
+                  </div>
+                  <div class="fr-pct" style="color:${r.color}">${r.confidence}%</div>
+                </div>`;
               });
               G.mask += data.mask_count;
               G.nomask += data.nomask_count;
@@ -1695,15 +1758,30 @@
             }
           }
         } catch (e) {
+          clearTimeout(wakeTimer);
+          clearTimeout(hardTimeout);
           document.getElementById("loader").style.display = "none";
+          document.getElementById("wake-notice").style.display = "none";
           document.getElementById("err-msg").style.display = "block";
-          document.getElementById("err-msg").textContent =
-            "Could not reach server. Make sure Flask is running.";
           document.getElementById("empty-state").style.display = "block";
+          if (e.name === "AbortError") {
+            document.getElementById("err-msg").textContent =
+              "⏱️ Request timed out after 90 seconds. The server may be overloaded. Please try again.";
+          } else if (
+            e.message.includes("Failed to fetch") ||
+            e.message.includes("NetworkError")
+          ) {
+            document.getElementById("err-msg").textContent =
+              "🔌 Cannot reach server. Check your internet connection or if the server URL is correct.";
+          } else {
+            document.getElementById("err-msg").textContent =
+              "❌ Error: " + e.message;
+          }
         }
         btn.disabled = false;
-        btn.textContent = "Detect Mask";
+        btn.textContent = "🔍 Detect Mask";
       }
+
       function refresh() {
         const tot = G.mask + G.nomask;
         document.getElementById("k-mask").textContent = G.mask;
@@ -1734,6 +1812,7 @@
         document.getElementById("ss-v").textContent =
           tot > 0 ? Math.round((G.nomask / tot) * 100) + "%" : "0%";
       }
+
       function addHistory(data) {
         G.hist.unshift({
           ...data,
@@ -1743,19 +1822,20 @@
         document.getElementById("hist-body").innerHTML = G.hist
           .map(
             (h, i) => `
-    <tr>
-      <td style="color:var(--mt)">#${G.hist.length - i}</td>
-      <td><img src="${h.thumb}" style="width:40px;height:30px;object-fit:cover;border-radius:5px;border:1px solid var(--bd)" alt="thumb"></td>
-      <td><strong>${h.total_faces}</strong></td>
-      <td class="c-g">${h.mask_count}</td>
-      <td class="c-r">${h.nomask_count}</td>
-      <td>${h.nomask_count > 0 ? '<span class="tag-warn">Alert</span>' : '<span class="tag-safe">Clear</span>'}</td>
-      <td style="color:var(--mt)">${h.results.length > 0 ? h.results[0].confidence + "%" : "--"}</td>
-      <td style="color:var(--ft)">${h.time}</td>
-    </tr>`,
+          <tr>
+            <td style="color:var(--mt)">#${G.hist.length - i}</td>
+            <td><img src="${h.thumb}" style="width:40px;height:30px;object-fit:cover;border-radius:5px;border:1px solid var(--bd)" alt="thumb"></td>
+            <td><strong>${h.total_faces}</strong></td>
+            <td class="c-g">${h.mask_count}</td>
+            <td class="c-r">${h.nomask_count}</td>
+            <td>${h.nomask_count > 0 ? '<span class="tag-warn">Alert</span>' : '<span class="tag-safe">Clear</span>'}</td>
+            <td style="color:var(--mt)">${h.results.length > 0 ? h.results[0].confidence + "%" : "--"}</td>
+            <td style="color:var(--ft)">${h.time}</td>
+          </tr>`,
           )
           .join("");
       }
+
       function startCam() {
         document.getElementById("cam-feed").src = "/video_feed";
         document.getElementById("cam-feed").style.display = "block";
@@ -1768,6 +1848,7 @@
         document.getElementById("cam-status-txt").style.color = "var(--green)";
         document.getElementById("cam-status-txt").textContent = "Live";
       }
+
       function stopCam() {
         document.getElementById("cam-feed").src = "";
         document.getElementById("cam-feed").style.display = "none";
