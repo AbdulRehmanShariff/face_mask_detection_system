@@ -1693,7 +1693,8 @@
         }, 5000);
 
         const controller = new AbortController();
-        const hardTimeout = setTimeout(() => controller.abort(), 90000); // 90 second max
+        // const hardTimeout = setTimeout(() => controller.abort(), 90000);
+        const hardTimeout = setTimeout(() => controller.abort(), 180000);
 
         const fd = new FormData();
         fd.append("file", chosen);
