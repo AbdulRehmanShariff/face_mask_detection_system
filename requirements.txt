@@ -4,4 +4,4 @@ opencv-python-headless==4.9.0.80
 flask==3.0.3
 numpy==1.26.4
 werkzeug==3.0.3
-pillow==10.3.0
+pillow==10.3.0gevent 
